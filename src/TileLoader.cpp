@@ -8,6 +8,7 @@
  */
 
 #include "TileLoader.h"
+#include "cinder/app/App.h"
 
 #if defined( CINDER_COCOA )
 #include <objc/objc-auto.h>
@@ -15,34 +16,52 @@
 
 namespace cinder { namespace modestmaps {
 
-void TileLoader::doThreadedPaint( const Coordinate &coord )
-{
-#if defined( CINDER_COCOA )
-	// borrowed from https://llvm.org/svn/llvm-project/lldb/trunk/source/Host/macosx/Host.mm
-  #if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_5
-	// On Leopard and earlier there is no way objc_registerThreadWithCollector
-	// function, so we do it manually.
-	auto_zone_register_thread(auto_zone());
-  #else
-	// On SnowLoepard and later we just call the thread registration function.
-	objc_registerThreadWithCollector();
-  #endif	
-#endif	
+TileLoader::TileLoader(){
+    
+}
 
-	Surface image;
+TileLoader::~TileLoader(){
     
-    if (provider) {
-        image = provider->createSurface( coord );
-    }
+    runThread = false;
+    mThreadRef->join();
+}
     
-	pendingCompleteMutex.lock();
-    if (pending.count(coord) > 0) {
-        if (image) {
-            completed[coord] = image;
+TileLoader::TileLoader(MapProviderRef _provider) : provider(_provider){
+    
+    runThread = true;
+    mThreadRef = std::make_shared<std::thread>([&]{ doThreadedPaint(); } );
+    
+    
+}
+    
+    
+void TileLoader::doThreadedPaint()
+{
+    
+    ci::app::console() << std::thread::hardware_concurrency() << std::endl;
+    
+    while(runThread){
+        Surface image;
+        
+        
+        pendingCompleteMutex.lock();
+        Coordinate coord = *pending.begin();
+        pendingCompleteMutex.unlock();
+        
+        if (provider) {
+            image = provider->createSurface( coord );
         }
-        pending.erase(coord);  
-    } // otherwise clear was called so we should abandon this image to the ether
-	pendingCompleteMutex.unlock();
+        
+        pendingCompleteMutex.lock();
+        if (pending.count(coord) > 0) {
+            if (image) {
+                completed[coord] = image;
+            }
+            pending.erase(coord);  
+        } // otherwise clear was called so we should abandon this image to the ether
+        
+        pendingCompleteMutex.unlock();
+    }
 }
 
 void TileLoader::processQueue(std::vector<Coordinate> &queue )
@@ -53,10 +72,7 @@ void TileLoader::processQueue(std::vector<Coordinate> &queue )
 
         pendingCompleteMutex.lock();
         pending.insert(key);
-        pendingCompleteMutex.unlock();	
-        
-        // TODO: consider using a single thread and a queue, rather than a thread per load?
-        std::thread loaderThread( &TileLoader::doThreadedPaint, this, key );        
+        pendingCompleteMutex.unlock();
 	}
 }
 

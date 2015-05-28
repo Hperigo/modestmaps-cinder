@@ -20,10 +20,10 @@ class TileLoader
 {
 	
 private:
+    TileLoader();
+    TileLoader( MapProviderRef _provider ); /*: provider(_provider) {}*/
     
-    TileLoader( MapProviderRef _provider ): provider(_provider) {}
-    
-    void doThreadedPaint( const Coordinate &coord );
+    void doThreadedPaint( );
     
 	std::mutex pendingCompleteMutex;	
 	std::set<Coordinate> pending;
@@ -31,10 +31,15 @@ private:
     
     MapProviderRef provider;
     
-public:
+    std::shared_ptr<std::thread> mThreadRef;
+    std::atomic<bool> runThread;
     
+public:
+    ~TileLoader();
     static TileLoaderRef create( MapProviderRef provider )
     {
+        
+//        return std::make_shared<TileLoader>(new TileLoader(provider) );
         return TileLoaderRef( new TileLoader( provider ) );
     }
     

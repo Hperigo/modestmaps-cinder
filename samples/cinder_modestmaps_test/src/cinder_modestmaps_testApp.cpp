@@ -26,7 +26,7 @@ class cinder_modestmaps_testApp : public AppBasic {
 	void mouseWheel( MouseEvent event );
 	void mouseMove( MouseEvent event );
 	void draw();
-	void resize( ResizeEvent event);
+	void resize();
 	
 	Map map;
 	Vec2f pMouse;
@@ -50,7 +50,7 @@ void cinder_modestmaps_testApp::setup()
 {
 	setFrameRate(60.0);
 	//map.setup(new OpenStreetMapProvider(), this->getWindowWidth()/*2.0*/, this->getWindowHeight()/*2.0*/);
-	map.setup(new BingMapsProvider(), this->getWindowWidth()/*2.0*/, this->getWindowHeight()/*2.0*/);
+    map.setup(  BingMapsProvider::create(), getWindowSize() );
 	transitioner.setMap(&map);
 }
 
@@ -216,9 +216,10 @@ void cinder_modestmaps_testApp::touchesEnded( TouchEvent event )
 
 }
 	
-void cinder_modestmaps_testApp::resize( ResizeEvent event )
+void cinder_modestmaps_testApp::resize( )
 {
-	map.setSize( event.getWidth(), event.getHeight() );
+//	map.setSize( event.getWidth(), event.getHeight() );
+    map.setSize( getWindowSize() );
 }
 
 

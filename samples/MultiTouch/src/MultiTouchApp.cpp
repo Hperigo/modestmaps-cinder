@@ -19,7 +19,7 @@ public:
 	void update();
 	void draw();
     
-	void resize( ResizeEvent event);
+	void resize();
 
 	void keyUp( KeyEvent event );
     
@@ -143,7 +143,7 @@ void MultiTouchApp::touchesEnded( TouchEvent event )
 	}	
 }
 
-void MultiTouchApp::resize( ResizeEvent event )
+void MultiTouchApp::resize( )
 {
 //    MapExtent extent = mMap.getExtent();    
 	mMap.setSize( getWindowSize() );
